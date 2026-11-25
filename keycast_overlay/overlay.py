@@ -249,6 +249,10 @@ class KeycastOverlayApp:
 
         self.root.after(16, self._poll_events)
 
+    def _heartbeat(self) -> None:
+        """Keep the Tk event loop responsive to Ctrl+C in Windows terminals."""
+        self.root.after(200, self._heartbeat)
+
     def run(self) -> int:
         if not self.config.demo and sys.platform == "win32":
             self._lock = SingleInstanceLock()
@@ -261,6 +265,11 @@ class KeycastOverlayApp:
                 for key in DEMO_KEYS:
                     self.tracker.push(key)
                 self.redraw()
+                self.root.after(200, self._heartbeat)
+                print(
+                    f"keycast-overlay: demo active ({self.config.corner}) — press Ctrl+C to stop",
+                    flush=True,
+                )
             else:
                 if sys.platform != "win32":
                     raise RuntimeError("Live key capture requires Windows (use --demo to preview).")
@@ -269,8 +278,16 @@ class KeycastOverlayApp:
                 )
                 self._listener.start()
                 self.root.after(16, self._poll_events)
+                print(
+                    f"keycast-overlay: listening ({self.config.corner}) — "
+                    f"press {PAUSE_COMBO} to pause/hide, Ctrl+C to stop",
+                    flush=True,
+                )
 
-            self.root.mainloop()
+            try:
+                self.root.mainloop()
+            except KeyboardInterrupt:
+                self.root.destroy()
             return 0
         finally:
             if self._listener is not None:
