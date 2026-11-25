@@ -21,6 +21,14 @@ WS_EX_TOOLWINDOW = 0x00000080
 WS_EX_NOACTIVATE = 0x08000000
 WS_EX_TOPMOST = 0x00000008
 
+GA_ROOT = 2
+HWND_TOPMOST = -1
+SWP_NOSIZE = 0x0001
+SWP_NOMOVE = 0x0002
+SWP_NOACTIVATE = 0x0010
+SWP_FRAMECHANGED = 0x0020
+SWP_SHOWWINDOW = 0x0040
+
 ERROR_ALREADY_EXISTS = 183
 
 ULONG_PTR = ctypes.c_size_t
@@ -72,9 +80,25 @@ class SingleInstanceLock:
             self._handle = None
 
 
-def apply_clickthrough_styles(hwnd: int) -> None:
-    """Mark a Win32 window as click-through, non-activating, and hidden from Alt+Tab."""
+def resolve_top_level_hwnd(hwnd: int) -> int:
+    """Resolve Tkinter's inner child HWND to its top-level Win32 frame HWND."""
     user32 = ctypes.WinDLL("user32", use_last_error=True)
+    user32.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
+    user32.GetAncestor.restype = wintypes.HWND
+    root_hwnd = user32.GetAncestor(hwnd, GA_ROOT)
+    return int(root_hwnd) if root_hwnd else int(hwnd)
+
+
+def apply_clickthrough_styles(hwnd: int) -> int:
+    """Mark a Win32 top-level window as click-through, non-activating, and topmost.
+
+    Resolves Tkinter's inner HWND to its top-level parent so WS_EX_LAYERED is
+    never applied to a child window (which would make it invisible on Windows).
+    Returns the top-level HWND that was styled.
+    """
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    top_hwnd = resolve_top_level_hwnd(hwnd)
+
     get_long = getattr(user32, "GetWindowLongPtrW", user32.GetWindowLongW)
     set_long = getattr(user32, "SetWindowLongPtrW", user32.SetWindowLongW)
     get_long.argtypes = [wintypes.HWND, ctypes.c_int]
@@ -82,16 +106,37 @@ def apply_clickthrough_styles(hwnd: int) -> None:
     set_long.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_ssize_t]
     set_long.restype = ctypes.c_ssize_t
 
-    ex_style = get_long(hwnd, GWL_EXSTYLE)
+    ex_style = get_long(top_hwnd, GWL_EXSTYLE)
     new_style = (
         ex_style
         | WS_EX_LAYERED
         | WS_EX_TRANSPARENT
         | WS_EX_TOOLWINDOW
         | WS_EX_NOACTIVATE
-        | WS_EX_TOPMOST
     )
-    set_long(hwnd, GWL_EXSTYLE, new_style)
+    if new_style != ex_style:
+        set_long(top_hwnd, GWL_EXSTYLE, new_style)
+
+    user32.SetWindowPos.argtypes = [
+        wintypes.HWND,
+        wintypes.HWND,
+        ctypes.c_int,
+        ctypes.c_int,
+        ctypes.c_int,
+        ctypes.c_int,
+        wintypes.UINT,
+    ]
+    user32.SetWindowPos.restype = wintypes.BOOL
+    user32.SetWindowPos(
+        top_hwnd,
+        wintypes.HWND(HWND_TOPMOST),
+        0,
+        0,
+        0,
+        0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW,
+    )
+    return top_hwnd
 
 
 class GlobalKeyboardListener:
