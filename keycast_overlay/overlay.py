@@ -212,6 +212,7 @@ class KeycastOverlayApp:
 
         self.root.deiconify()
         self.root.attributes("-topmost", True)
+        self.root.update_idletasks()
         self._apply_win32_styles()
 
     def _schedule_clear(self) -> None:
@@ -267,7 +268,8 @@ class KeycastOverlayApp:
                 self.redraw()
                 self.root.after(200, self._heartbeat)
                 print(
-                    f"keycast-overlay: demo active ({self.config.corner}) — press Ctrl+C to stop",
+                    f"keycast-overlay: demo preview ({self.config.corner}, static sample keys) — "
+                    "run without --demo for live keystrokes; press Ctrl+C to stop",
                     flush=True,
                 )
             else:
