@@ -161,6 +161,13 @@ class GlobalKeyboardListener:
     def stop(self) -> None:
         if self._thread_id is not None:
             user32 = ctypes.WinDLL("user32", use_last_error=True)
+            user32.PostThreadMessageW.argtypes = [
+                wintypes.DWORD,
+                wintypes.UINT,
+                wintypes.WPARAM,
+                wintypes.LPARAM,
+            ]
+            user32.PostThreadMessageW.restype = wintypes.BOOL
             user32.PostThreadMessageW(self._thread_id, WM_QUIT, 0, 0)
         if self._thread is not None and self._thread.is_alive():
             self._thread.join(timeout=1.5)
@@ -168,6 +175,9 @@ class GlobalKeyboardListener:
     def _run(self) -> None:
         user32 = ctypes.WinDLL("user32", use_last_error=True)
         kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+        kernel32.GetCurrentThreadId.argtypes = []
+        kernel32.GetCurrentThreadId.restype = wintypes.DWORD
 
         user32.SetWindowsHookExW.argtypes = [
             ctypes.c_int,
@@ -185,16 +195,30 @@ class GlobalKeyboardListener:
         user32.CallNextHookEx.restype = ctypes.c_ssize_t
         user32.UnhookWindowsHookEx.argtypes = [wintypes.HHOOK]
         user32.UnhookWindowsHookEx.restype = wintypes.BOOL
+        user32.GetMessageW.argtypes = [
+            ctypes.POINTER(wintypes.MSG),
+            wintypes.HWND,
+            wintypes.UINT,
+            wintypes.UINT,
+        ]
+        user32.GetMessageW.restype = wintypes.BOOL
+        user32.TranslateMessage.argtypes = [ctypes.POINTER(wintypes.MSG)]
+        user32.TranslateMessage.restype = wintypes.BOOL
+        user32.DispatchMessageW.argtypes = [ctypes.POINTER(wintypes.MSG)]
+        user32.DispatchMessageW.restype = ctypes.c_ssize_t
 
-        self._thread_id = kernel32.GetCurrentThreadId()
+        self._thread_id = int(kernel32.GetCurrentThreadId())
 
         def _proc(n_code: int, w_param: int, l_param: int) -> int:
             if n_code >= 0 and l_param:
-                info = ctypes.cast(l_param, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
-                if w_param in (WM_KEYDOWN, WM_SYSKEYDOWN):
-                    self._on_event(int(info.vkCode), True)
-                elif w_param in (WM_KEYUP, WM_SYSKEYUP):
-                    self._on_event(int(info.vkCode), False)
+                try:
+                    info = KBDLLHOOKSTRUCT.from_address(l_param)
+                    if w_param in (WM_KEYDOWN, WM_SYSKEYDOWN):
+                        self._on_event(int(info.vkCode), True)
+                    elif w_param in (WM_KEYUP, WM_SYSKEYUP):
+                        self._on_event(int(info.vkCode), False)
+                except Exception:
+                    pass
             return user32.CallNextHookEx(self._hook, n_code, w_param, l_param)
 
         self._callback_ref = LOW_LEVEL_KEYBOARD_PROC(_proc)
