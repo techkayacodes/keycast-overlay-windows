@@ -6,6 +6,14 @@ Created by **Kemal Codes ([@techkayacodes](https://github.com/techkayacodes))** 
 
 Built with **zero third-party runtime dependencies** (standard Python 3.10+, Tkinter, and native Win32 APIs via `ctypes`), designed for screen recordings, coding tutorials, live streams, and pair programming.
 
+## Cross-Platform Editions
+
+| Platform | Repository | Implementation |
+|---|---|---|
+| **Windows 10 / 11** *(this repo — includes clickable `.exe`)* | [techkayacodes/keycast-overlay-windows](https://github.com/techkayacodes/keycast-overlay-windows) | Native Win32 `WH_KEYBOARD_LL` + click-through overlay + system tray |
+| **macOS 13+** | [techkayacodes/keycast-overlay-macos](https://github.com/techkayacodes/keycast-overlay-macos) | Native Swift / AppKit `NSPanel` + `CGEventTap` + menu bar app |
+| **Linux (Wayland)** *(Original)* | [techkayacodes/keycast-overlay](https://github.com/techkayacodes/keycast-overlay) | GTK 4 + `gtk4-layer-shell` + `showmethekey-cli` |
+
 ## Design & Signature Features
 
 Designed by **[@techkayacodes](https://github.com/techkayacodes)** for maximum clarity without cluttering your workspace:
