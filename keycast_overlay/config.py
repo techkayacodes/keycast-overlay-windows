@@ -14,8 +14,8 @@ class OverlayConfig:
     max_keys: int = 8
     highlight: int = 3
     font_size: int = 11
-    margin_top: int = 12
-    margin_right: int = 12
+    margin_top: int = 84
+    margin_right: int = 16
     corner: str = "top-right"
     clear_after: float = 0.0
     opacity: float = 0.90
@@ -83,14 +83,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--margin-top",
         type=int,
-        default=_env_int("KEYCAST_MARGIN_TOP", 12),
-        help="Vertical margin from the screen edge in pixels (default: 12).",
+        default=_env_int("KEYCAST_MARGIN_TOP", 84),
+        help="Vertical margin from the screen edge in pixels (default: 84).",
     )
     parser.add_argument(
         "--margin-right",
         type=int,
-        default=_env_int("KEYCAST_MARGIN_RIGHT", 12),
-        help="Horizontal margin from the screen edge in pixels (default: 12).",
+        default=_env_int("KEYCAST_MARGIN_RIGHT", 16),
+        help="Horizontal margin from the screen edge in pixels (default: 16).",
     )
     parser.add_argument(
         "--corner",
