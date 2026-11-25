@@ -69,8 +69,8 @@ Every option can be passed as a CLI flag or set as an environment variable:
 | `--highlight`    | `KEYCAST_HIGHLIGHT`    | `3`         | How many newest keys get the gold outline        |
 | `--font-size`    | `KEYCAST_FONT_SIZE`    | `11`        | Font size in points                              |
 | `--corner`       | `KEYCAST_CORNER`       | `top-right` | `top-right`, `top-left`, `bottom-right`, `bottom-left` |
-| `--margin-top`   | `KEYCAST_MARGIN_TOP`   | `12`        | Vertical margin from screen edge (px)            |
-| `--margin-right` | `KEYCAST_MARGIN_RIGHT` | `12`        | Horizontal margin from screen edge (px)          |
+| `--margin-top`   | `KEYCAST_MARGIN_TOP`   | `84`        | Vertical margin from screen edge (px)            |
+| `--margin-right` | `KEYCAST_MARGIN_RIGHT` | `16`        | Horizontal margin from screen edge (px)          |
 | `--clear-after`  | `KEYCAST_CLEAR_AFTER`  | `0`         | Seconds idle before clearing (`0` = never)       |
 | `--opacity`      | `KEYCAST_OPACITY`      | `0.90`      | Window opacity (`0.2` to `1.0`)                  |
 | `--demo`         | `KEYCAST_DEMO`         | `0`         | Preview with sample keys without capturing input |
