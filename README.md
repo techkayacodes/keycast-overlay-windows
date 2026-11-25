@@ -15,9 +15,19 @@ Designed by **[@techkayacodes](https://github.com/techkayacodes)** for maximum c
 - **Clean placement & compact sizing**: sized cleanly for readability and anchored by default in the upper-right below window title and browser tab bars (`margin-top: 84px`, `margin-right: 16px`), keeping window controls and tabs unobstructed.
 - **Combo chips & lone modifier taps**: shortcuts appear as a single chip (`Ctrl+C`, `Win+Enter`, `Ctrl+Shift+T`), while standalone modifier taps (like `Win` or `Ctrl`) still display cleanly.
 - **Fully click-through & focus-safe**: uses Win32 `WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST` so mouse clicks pass straight through, keyboard focus is never stolen, and the overlay stays out of Alt+Tab and the taskbar.
-- **Instant privacy pause**: press `Ctrl+Alt+Shift+P` anytime to pause and hide the overlay before typing sensitive input; press it again to resume.
+- **System tray menu & quick hotkeys**: right-click the gold `K` icon in the Windows system tray to **Pause / Resume**, **Clear Keys**, or **Quit** — or use `Ctrl+Alt+Shift+P` to pause/hide and `Ctrl+Alt+Shift+Q` to quit anytime.
 - **Single-instance safety**: uses a Windows named mutex (`Global\KeycastOverlayWindowsMutex`) so launching the app twice never duplicates keys.
 - **Zero disk logging**: key labels live strictly in memory while displayed on screen and are never written to disk or transmitted anywhere.
+
+## Download (No Python or CLI Required)
+
+For non-CLI Windows users, grab the standalone clickable executable from the **[Releases page](https://github.com/techkayacodes/keycast-overlay-windows/releases/latest)**:
+
+1. Download **`keycast-overlay.exe`** from the latest release.
+2. Double-click **`keycast-overlay.exe`** — no terminal window, no Python install needed.
+3. Start typing and your recent keys appear immediately. Right-click the gold **`K`** icon in your Windows system tray (or press `Ctrl+Alt+Shift+Q`) to pause, clear, or quit.
+
+> **Note:** Because the binary is unsigned, Windows SmartScreen may show "Windows protected your PC" on first launch — click **More info → Run anyway**, or build it yourself from source using `.\build-exe.ps1`.
 
 ## How It Works
 
@@ -75,6 +85,14 @@ All settings can be passed as CLI flags or set via environment variables:
 | `--clear-after`  | `KEYCAST_CLEAR_AFTER`  | `0`         | Seconds idle before clearing keys (`0` = never clear)  |
 | `--opacity`      | `KEYCAST_OPACITY`      | `0.90`      | Overlay opacity (`0.2` to `1.0`)                       |
 | `--demo`         | `KEYCAST_DEMO`         | `0`         | Display static sample chips without starting the hook  |
+
+## Building the Standalone `.exe` from Source
+
+```powershell
+.\build-exe.ps1
+```
+
+Produces a self-contained `dist\keycast-overlay.exe` with the custom dark-and-gold keycap icon embedded.
 
 ## Running Tests
 
