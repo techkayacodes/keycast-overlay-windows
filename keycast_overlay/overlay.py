@@ -9,6 +9,7 @@ import tkinter.font as tkfont
 
 from .config import OverlayConfig
 from .keymap import Chip, KeyStateTracker
+from .tray import SystemTrayIcon
 from .win_hook import GlobalKeyboardListener, SingleInstanceLock, apply_clickthrough_styles
 
 # Transparent chroma-key background color (never used in chip art)
@@ -26,6 +27,7 @@ RECENT_FG = "#ffffff"
 
 DEMO_KEYS = ("H", "E", "L", "Ctrl+C", "Win+Enter", "Space", "⌫", "Win")
 PAUSE_COMBO = "Ctrl+Alt+Shift+P"
+QUIT_COMBO = "Ctrl+Alt+Shift+Q"
 
 
 def _rounded_rect(
@@ -65,7 +67,9 @@ class KeycastOverlayApp:
             highlight=config.highlight,
         )
         self._events: queue.SimpleQueue[tuple[int, bool]] = queue.SimpleQueue()
+        self._actions: queue.SimpleQueue[str] = queue.SimpleQueue()
         self._listener: GlobalKeyboardListener | None = None
+        self._tray: SystemTrayIcon | None = None
         self._lock: SingleInstanceLock | None = None
         self._clear_after_id: str | None = None
         self._paused: bool = False
@@ -228,7 +232,32 @@ class KeycastOverlayApp:
         self.tracker.clear()
         self.redraw()
 
+    def _drain_actions(self) -> bool:
+        """Process thread-safe tray menu actions. Returns True if exit requested."""
+        changed = False
+        while True:
+            try:
+                action = self._actions.get_nowait()
+            except queue.Empty:
+                break
+            if action == "exit":
+                self.root.quit()
+                return True
+            if action == "toggle_pause":
+                self._paused = not self._paused
+                self.tracker.clear()
+                changed = True
+            elif action == "clear":
+                self.tracker.clear()
+                changed = True
+        if changed:
+            self.redraw()
+        return False
+
     def _poll_events(self) -> None:
+        if self._drain_actions():
+            return
+
         changed = False
         while True:
             try:
@@ -236,6 +265,9 @@ class KeycastOverlayApp:
             except queue.Empty:
                 break
             emitted = self.tracker.handle_vk(vk_code, pressed)
+            if emitted == QUIT_COMBO:
+                self.root.quit()
+                return
             if emitted == PAUSE_COMBO:
                 self._paused = not self._paused
                 self.tracker.clear()
@@ -251,8 +283,15 @@ class KeycastOverlayApp:
         self.root.after(16, self._poll_events)
 
     def _heartbeat(self) -> None:
-        """Keep the Tk event loop responsive to Ctrl+C in Windows terminals."""
-        self.root.after(200, self._heartbeat)
+        """Keep the Tk event loop responsive to Ctrl+C and tray actions."""
+        if self._drain_actions():
+            return
+        self.root.after(100, self._heartbeat)
+
+    @staticmethod
+    def _log(msg: str) -> None:
+        if sys.stdout is not None:
+            print(msg, flush=True)
 
     def run(self) -> int:
         if not self.config.demo and sys.platform == "win32":
@@ -262,15 +301,23 @@ class KeycastOverlayApp:
                 return 0
 
         try:
+            if sys.platform == "win32":
+                self._tray = SystemTrayIcon(
+                    on_toggle_pause=lambda: self._actions.put("toggle_pause"),
+                    on_clear=lambda: self._actions.put("clear"),
+                    on_exit=lambda: self._actions.put("exit"),
+                    is_paused=lambda: self._paused,
+                )
+                self._tray.start()
+
             if self.config.demo:
                 for key in DEMO_KEYS:
                     self.tracker.push(key)
                 self.redraw()
-                self.root.after(200, self._heartbeat)
-                print(
+                self.root.after(100, self._heartbeat)
+                self._log(
                     f"keycast-overlay: demo preview ({self.config.corner}, static sample keys) — "
-                    "run without --demo for live keystrokes; press Ctrl+C to stop",
-                    flush=True,
+                    "run without --demo for live keystrokes; right-click tray icon or press Ctrl+C to stop"
                 )
             else:
                 if sys.platform != "win32":
@@ -280,19 +327,24 @@ class KeycastOverlayApp:
                 )
                 self._listener.start()
                 self.root.after(16, self._poll_events)
-                print(
+                self._log(
                     f"keycast-overlay: listening ({self.config.corner}) — "
-                    f"press {PAUSE_COMBO} to pause/hide, Ctrl+C to stop",
-                    flush=True,
+                    f"press {PAUSE_COMBO} to pause/hide, {QUIT_COMBO} or tray icon to quit"
                 )
 
             try:
                 self.root.mainloop()
             except KeyboardInterrupt:
-                self.root.destroy()
+                pass
             return 0
         finally:
             if self._listener is not None:
                 self._listener.stop()
+            if self._tray is not None:
+                self._tray.stop()
+            try:
+                self.root.destroy()
+            except tk.TclError:
+                pass
             if self._lock is not None:
                 self._lock.release()
