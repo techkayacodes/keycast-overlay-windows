@@ -12,7 +12,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         config = parse_config(argv)
     except ValueError as exc:
-        print(f"error: {exc}", file=sys.stderr)
+        if sys.stderr is not None:
+            print(f"error: {exc}", file=sys.stderr)
         return 2
     app = KeycastOverlayApp(config)
     return app.run()
